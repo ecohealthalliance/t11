@@ -1,0 +1,6 @@
+rdflib
+spacy
+requests
+jinja2
+pymongo
+dictdiffer
