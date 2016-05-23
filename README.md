@@ -14,7 +14,25 @@ In another window load the types data:
 ./bin/s-post http://localhost:3030/dataset default ../types.ttl
 ```
 
-## To laod spacy parse trees into Fuseki
+## To import a Fuseki database
+
+Stop Fuseki.
+
+```
+sudo apt-get install awscli
+# Configure your aws access key. It must be in the grits-dev group.
+aws s3 cp s3://promed-database/sparql-annotation-database/DB.tar.gz
+tar -xvzf DB.tar.gz [Your DB directory location]
+```
+
+## To create a new backup
+
+```
+tar -cvzf DB.tar.gz [Your DB directory location]
+aws s3 cp DB.tar.gz s3://promed-database/sparql-annotation-database/DB.tar.gz
+```
+
+## To load spacy parse trees into Fuseki
 
 ```
 virtualenv venv
