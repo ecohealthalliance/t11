@@ -32,12 +32,23 @@ tar -cvzf DB.tar.gz [Your DB directory location]
 aws s3 cp DB.tar.gz s3://promed-database/sparql-annotation-database/DB.tar.gz
 ```
 
-## To load spacy parse trees into Fuseki
+# To run the Python scripts
 
 ```
 virtualenv venv
 source venv/bin/activate
 pip install -r requirements.pip
+```
+
+## To import ProMED articles from mongo into Fuseki
+
+```
+python import_mongo_articles.py
+```
+
+## To load spacy parse trees into Fuseki
+
+```
 python -m spacy.en.download
 python spacy_to_rdf.py
 ```
