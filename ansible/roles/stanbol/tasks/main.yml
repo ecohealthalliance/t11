@@ -1,0 +1,74 @@
+---
+- git:
+    repo: https://github.com/apache/stanbol.git
+    dest: "{{stanbol_dir}}"
+    version: "1d822130696d6adb76fbec35dfea3c3798ec7ad4"
+- name: Install Stanbol (skipping tests because they fail for me) (takes about 10 minutes)
+  command: "mvn install -Dmaven.test.skip=true"
+  args:
+    chdir: "{{stanbol_dir}}"
+    creates:  "{{stanbol_dir}}/target"
+- name: Install supervisord config
+  template: src=supervisor/stanbol.conf dest="{{supervisor_config_dir}}/stanbol.conf"
+  become_user: root
+  register: supervisor_config
+- name: Reload supervisor
+  command: supervisorctl update
+  become_user: root
+  when: supervisor_config.changed
+- supervisorctl: name=stanbol state=started
+  become_user: root
+- name: Init genericrdf index
+  command: "java -jar org.apache.stanbol.entityhub.indexing.genericrdf-{{stanbol_version}}.jar init"
+  args:
+    chdir: "{{genericrdf_dir}}/target"
+- name: Download ontology
+  get_url:
+    url: "{{ontology_url}}"
+    dest: "/tmp/doid.owl"
+- copy:
+    remote_src: yes
+    src: "/tmp/doid.owl"
+    dest: "{{genericrdf_dir}}/target/indexing/resources/rdfdata/"
+- name: Configure index
+  template:
+    src: "entities/indexing.properties"
+    dest: "{{genericrdf_dir}}/target/indexing/config/indexing.properties"
+- name: Configure index
+  template:
+    src: "entities/mappings.txt"
+    dest: "{{genericrdf_dir}}/target/indexing/config/mappings.txt"
+- name: Index the ontology
+  command: "java -jar org.apache.stanbol.entityhub.indexing.genericrdf-{{stanbol_version}}.jar index"
+  args:
+    chdir: "{{genericrdf_dir}}/target"
+- name: Load ontology entities into stanbol
+  copy:
+    remote_src: yes
+    src: "{{genericrdf_dir}}/target/indexing/dist/org.apache.stanbol.data.site.{{ontology_name}}-1.0.0.jar"
+    dest: "{{stanbol_server_dir}}/fileinstall"
+- name: Load index into stanbol
+  copy:
+    remote_src: yes
+    src: "{{genericrdf_dir}}/target/indexing/dist/{{ontology_name}}.solrindex.zip"
+    dest: "{{stanbol_server_dir}}/datafiles/"
+
+- file: path="{{enhancer_dir}}/src/main/resources/config/" state="directory" recurse=yes
+- template:
+    src: "enhancer/pom.xml"
+    dest: "{{enhancer_dir}}/pom.xml"
+- template:
+    src: "enhancer/WeightedChain.config"
+    dest: "{{enhancer_dir}}/src/main/resources/config/org.apache.stanbol.enhancer.chain.weighted.impl.WeightedChain-{{enhancer_name}}Chain.config"
+- template:
+    src: "enhancer/EntityhubLinkingEngine.config"
+    dest: "{{enhancer_dir}}/src/main/resources/config/org.apache.stanbol.enhancer.engines.entityhublinking.EntityhubLinkingEngine-{{enhancer_name}}.config"
+- name: Bundle custom enhancer
+  command: "mvn install"
+  args:
+    chdir: "{{enhancer_dir}}"
+- name: Load enhancer into stanbol
+  copy:
+    remote_src: yes
+    src: "{{enhancer_dir}}/target/io.eha.{{enhancer_name}}-{{enhancer_version}}.jar"
+    dest: "{{stanbol_server_dir}}/fileinstall/"

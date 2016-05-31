@@ -52,3 +52,16 @@ python import_mongo_articles.py
 python -m spacy.en.download
 python spacy_to_rdf.py
 ```
+
+# To install stanbol and the disease ontology (In Development)
+
+Install Java 8, ansible 2.0+ and supervisor.
+
+*If you are not using the ubunty apt version of Supervisor, you probably need
+to set the variable supervisor_config_dir in site.yml*
+
+Run the ansible playbook:
+
+```
+sudo ansible-playbook --connection=local site.yml --become-user=[your user] --extra "stanbol_dir=[path where you want to install stanbol]"
+```

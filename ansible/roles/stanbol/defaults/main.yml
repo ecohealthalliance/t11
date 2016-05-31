@@ -1,0 +1,3 @@
+genericrdf_dir: "{{stanbol_dir}}/entityhub/indexing/genericrdf"
+enhancer_dir: "{{stanbol_dir}}/development/{{ontology_name}}_chain"
+stanbol_server_dir: "{{stanbol_dir}}/launchers/full/target/stanbol"

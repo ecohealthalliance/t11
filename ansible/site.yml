@@ -1,0 +1,15 @@
+---
+- hosts: localhost
+  become: yes
+  vars:
+    - ontology_name: "doid"
+    - ontology_url: http://purl.obolibrary.org/obo/doid.owl
+    - enhancer_name: "doidEnhancer"
+    - enhancer_version: "0.0.14"
+    - stanbol_version: "1.0.0-SNAPSHOT"
+    # This port should not be publicly exposed
+    - stanbol_port: 3000
+    - supervisor_config_dir: /etc/supervisor/conf.d
+  roles:
+    - role: stanbol
+      tags: stanbol
