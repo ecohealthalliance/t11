@@ -63,6 +63,7 @@ def create_annotations(article_uri, tokens):
                 ; anno:source_doc <{{source_doc}}>
                 ; anno:start {{phrase_start}}
                 ; anno:end {{phrase_end}}
+                ; anno:selected-text "{{phrase_text | escape}}"
                 ; anno:root <{{token_ref}}>
         } ;
         INSERT DATA {
@@ -79,6 +80,7 @@ def create_annotations(article_uri, tokens):
             source_doc=article_uri,
             phrase_start=token_to_range[token][0],
             phrase_end=token_to_range[token][1],
+            phrase_text=tokens.text[slice(*token_to_range[token])],
             root_word=token.text,
             pos=token.pos_,
             entity_type=token.ent_type_,

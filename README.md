@@ -65,3 +65,12 @@ Run the ansible playbook:
 ```
 sudo ansible-playbook --connection=local site.yml --become-user=[your user] --extra "stanbol_dir=[path where you want to install stanbol]"
 ```
+
+# To create annotations with annie
+
+Follow the directions here to install the grits-api using the same virtual environment as this project:
+https://github.com/ecohealthalliance/grits-api#installation-and-set-up
+
+```
+python annie_to_rdf.py
+```

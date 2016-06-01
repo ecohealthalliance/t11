@@ -45,6 +45,26 @@ def print_result(result):
         print "~~--~~--~~"
 
 if __name__ == '__main__':
+    print "Pathogens and the sentences they appear in"
+    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":"""
+    prefix anno: <http://www.eha.io/types/annotation_prop/>
+    prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
+    SELECT ?phrase ?target
+    WHERE {
+        ?phrase anno:start ?p_start ;
+            anno:end ?p_end ;
+            dep:ROOT ?noop .
+        ?target anno:category "pathogens" ;
+            anno:start ?t_start ;
+            anno:end ?t_end .
+        ?phrase anno:source_doc ?same_source .
+        ?target anno:source_doc ?same_source .
+        FILTER ( ?t_start >= ?p_start && ?t_end <= ?p_end )
+    } LIMIT 100
+    """}, headers={"Accept":"application/sparql-results+json" })
+    print_result(result)
+    assert False
+
     print "Prepositions containing a location name"
     result = requests.post(config.SPARQLDB_URL + "/query", data={"query":"""
     prefix anno: <http://www.eha.io/types/annotation_prop/>
@@ -68,14 +88,14 @@ if __name__ == '__main__':
     result = requests.post(config.SPARQLDB_URL + "/query", data={"query":"""
     prefix anno: <http://www.eha.io/types/annotation_prop/>
     prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
-    prefix rdf: <http://www.w3.org/2000/01/rdf-schema#>
+    prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     SELECT ?word
         # (group_concat(DISTINCT ?s;separator=";;") as ?subjects)
         (count(?s) as ?count)
     WHERE {
         ?s anno:root ?r .
         ?r anno:pos "NOUN" ;
-           rdf:label ?word .
+           rdfs:label ?word .
     }
     GROUP BY ?word
     ORDER BY DESC(?count)
@@ -89,19 +109,19 @@ if __name__ == '__main__':
     result = requests.post(config.SPARQLDB_URL + "/query", data={"query":"""
     prefix anno: <http://www.eha.io/types/annotation_prop/>
     prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
-    prefix rdf: <http://www.w3.org/2000/01/rdf-schema#>
+    prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     SELECT ?p ?p2
         (sample(?o) as ?example)
         (count(?s) as ?count)
     WHERE {
-        ?s anno:root/rdf:label "fever" .
+        ?s anno:root/rdfs:label "fever" .
         ?o ?p ?s .
         OPTIONAL {
             ?o ?p2 ?s2 .
-            ?p2 rdf:type anno:dependency_relation .
+            ?p2 a anno:dependency_relation .
             FILTER(?s != ?s2)
         } .
-        ?p rdf:type anno:dependency_relation
+        ?p a anno:dependency_relation
     }
     GROUP BY ?p ?p2
     ORDER BY DESC(?count)
@@ -115,10 +135,10 @@ if __name__ == '__main__':
     result = requests.post(config.SPARQLDB_URL + "/query", data={"query":"""
     prefix anno: <http://www.eha.io/types/annotation_prop/>
     prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
-    prefix rdf: <http://www.w3.org/2000/01/rdf-schema#>
+    prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     SELECT ?outbreakP ?outbreakType
     WHERE {
-        ?outbreakP anno:root/rdf:label "outbreak"
+        ?outbreakP anno:root/rdfs:label "outbreak"
             ; dep:compound ?outbreakType
     }
     """}, headers={"Accept":"application/sparql-results+json" })
@@ -142,7 +162,6 @@ if __name__ == '__main__':
     print_result(requests.post(config.SPARQLDB_URL + "/query", data={"query":"""
     prefix anno: <http://www.eha.io/types/annotation_prop/>
     prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
-    prefix rdf: <http://www.w3.org/2000/01/rdf-schema#>
     SELECT ?subject
     WHERE {
         ?subject dep:compound/dep:compound ?c
