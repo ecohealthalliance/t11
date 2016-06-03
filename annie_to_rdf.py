@@ -12,6 +12,35 @@ import config
 from annotator.annotator import AnnoDoc
 from annotator.keyword_annotator import KeywordAnnotator
 from annotator.geoname_annotator import GeonameAnnotator
+import re
+
+def resolve_keyword(keyword):
+    query = make_template("""
+    prefix anno: <http://www.eha.io/types/annotation_prop/>
+    prefix oboInOwl: <http://www.geneontology.org/formats/oboInOwl#>
+    prefix obo: <http://purl.obolibrary.org/obo/>
+    prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    SELECT ?entity
+    WHERE {
+        BIND (obo:DOID_4 AS ?disease)
+        ?entity rdfs:subClassOf* ?disease .
+        ?entity oboInOwl:hasNarrowSynonym|oboInOwl:hasRelatedSynonym|oboInOwl:hasExactSynonym|rdfs:label ?label
+        FILTER regex(?label, "^({{keyword | escape}})$", "i")
+    }
+    """).render(
+        keyword=re.escape(keyword)
+    )
+    resp = requests.post(config.SPARQLDB_URL + "/query", data={
+        "query": query
+    }, headers={"Accept":"application/sparql-results+json" })
+    resp.raise_for_status()
+    bindings = resp.json()['results']['bindings']
+    if len(bindings) == 0:
+        print "no match for", keyword
+    elif len(bindings) > 1:
+        print "multiple matches for", keyword
+        print bindings
+    return [binding['entity']['value'] for binding in bindings]
 
 def create_annotations(article_uri, annotated_doc):
     def get_span_uri(span):
@@ -22,14 +51,11 @@ def create_annotations(article_uri, annotated_doc):
     for tier_name, tier in annotated_doc.tiers.items():
         if tier_name.endswith("grams") or tier_name in ["tokens", "pos", "nes"]:
             continue
-        print tier_name
-        if tier_name == "pathogens" or tier_name == "diseases":
-            #import pdb; pdb.set_trace()
-            print tier.to_json()
         update_query = make_template("""
         prefix anno: <http://www.eha.io/types/annotation_prop/>
         prefix eha: <http://www.eha.io/types/>
         prefix rdf: <http://www.w3.org/2000/01/rdf-schema#>
+        prefix dc: <http://purl.org/dc/terms/>
         {% for span in spans %}
         INSERT DATA {
             <{{get_span_uri(span)}}> anno:annotator eha:annie
@@ -45,10 +71,22 @@ def create_annotations(article_uri, annotated_doc):
                 ; anno:start {{span.start}}
                 ; anno:end {{span.end}}
                 ; anno:selected-text "{{span.text | escape}}"
+                ; anno:annotator eha:annie
         } ;
+            {% if tier_name == "diseases" %}
+                INSERT DATA {
+                    {% for entity_uri in resolve_keyword(span.label) %}
+                         <{{entity_uri}}> dc:relation <{{get_span_uri(span)}}> .
+                    {% endfor %}
+                } ;
+            {% endif %}
         {% endfor %}
+        INSERT DATA {
+            <{{source_doc}}> anno:annotated_by eha:annie
+        }
         """).render(
             get_span_uri=get_span_uri,
+            resolve_keyword=resolve_keyword,
             source_doc=article_uri,
             tier_name=tier_name,
             spans=tier.spans)
@@ -62,10 +100,15 @@ if __name__ == '__main__':
     ]
     article_query_template = make_template("""
     prefix pro: <http://www.eha.io/types/promed/>
+    prefix anno: <http://www.eha.io/types/annotation_prop/>
+    prefix eha: <http://www.eha.io/types/>
     SELECT ?article_uri ?content
     WHERE {
         ?article_uri pro:text ?content
             ; pro:date ?date
+        FILTER NOT EXISTS {
+            ?article_uri anno:annotated_by eha:annie
+        }
     }
     ORDER BY ?date
     LIMIT 100

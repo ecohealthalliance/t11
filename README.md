@@ -71,6 +71,23 @@ sudo ansible-playbook --connection=local site.yml --become-user=[your user] --ex
 Follow the directions here to install the grits-api using the same virtual environment as this project:
 https://github.com/ecohealthalliance/grits-api#installation-and-set-up
 
+Import the disease ontology into Fuseki
+
+```
+cd [fuseki directory]
+wget http://purl.obolibrary.org/obo/doid.owl
+./bin/s-post http://localhost:3030/dataset default doid.owl
+```
+
 ```
 python annie_to_rdf.py
+```
+
+# To add computed predicates (like anno:contains)
+
+Computed predicates are relationships added after data is imported.
+They are used to make queries simpler and more efficient.
+
+```
+python add_computed_predicates.py
 ```

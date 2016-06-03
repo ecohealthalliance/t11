@@ -5,6 +5,14 @@ import requests
 from templater import make_template
 import config
 
+prefixes = """
+prefix pro: <http://www.eha.io/types/promed/>
+prefix anno: <http://www.eha.io/types/annotation_prop/>
+prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
+prefix dc: <http://purl.org/dc/terms/>
+prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+prefix eha: <http://www.eha.io/types/>
+"""
 def print_result(result):
     result.raise_for_status()
     for binding in result.json()['results']['bindings']:
@@ -45,30 +53,50 @@ def print_result(result):
         print "~~--~~--~~"
 
 if __name__ == '__main__':
+    print "Descriptors of resolved disease names"
+    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
+    SELECT ?parent ?target ?descriptor ?dep_rel ?rel
+    WHERE {
+        ?dep_rel a anno:dependency_relation .
+        VALUES ?dep_rel { dep:amod dep:nmod }
+        ?parent anno:min_contains ?target
+            ; ?dep_rel ?descriptor
+            .
+        ?descriptor anno:start ?d_start
+            ; anno:end ?d_end
+            .
+        ?target anno:category "diseases"
+            ; anno:start ?t_start
+            ; anno:end ?t_end
+            ; ^dc:relation ?rel
+            .
+        # The descriptor is outside of the target
+        FILTER ( ?d_end <= ?t_start || ?t_end <= ?d_start )
+    } LIMIT 100
+    """}, headers={"Accept":"application/sparql-results+json" })
+    print_result(result)
+    
     print "Pathogens and the sentences they appear in"
-    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":"""
-    prefix anno: <http://www.eha.io/types/annotation_prop/>
-    prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
+    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
     SELECT ?phrase ?target
     WHERE {
-        ?phrase anno:start ?p_start ;
-            anno:end ?p_end ;
-            dep:ROOT ?noop .
-        ?target anno:category "pathogens" ;
-            anno:start ?t_start ;
-            anno:end ?t_end .
+        ?phrase anno:start ?p_start
+            ; anno:end ?p_end
+            ; dep:ROOT ?noop
+            .
+        ?target anno:category "pathogens"
+            ; anno:start ?t_start
+            ; anno:end ?t_end
+            .
         ?phrase anno:source_doc ?same_source .
         ?target anno:source_doc ?same_source .
         FILTER ( ?t_start >= ?p_start && ?t_end <= ?p_end )
     } LIMIT 100
     """}, headers={"Accept":"application/sparql-results+json" })
     print_result(result)
-    assert False
 
     print "Prepositions containing a location name"
-    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":"""
-    prefix anno: <http://www.eha.io/types/annotation_prop/>
-    prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
+    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
     SELECT ?phrase ?prep
     WHERE {
         ?phrase dep:prep ?prep .
@@ -85,10 +113,7 @@ if __name__ == '__main__':
     print_result(result)
     
     print "Most frequent nouns"
-    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":"""
-    prefix anno: <http://www.eha.io/types/annotation_prop/>
-    prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
-    prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
     SELECT ?word
         # (group_concat(DISTINCT ?s;separator=";;") as ?subjects)
         (count(?s) as ?count)
@@ -106,10 +131,7 @@ if __name__ == '__main__':
     print "Most common dependency relations around the given word:"
     # This could be useful for finding patterns in how certain types of words
     # are used.
-    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":"""
-    prefix anno: <http://www.eha.io/types/annotation_prop/>
-    prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
-    prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
     SELECT ?p ?p2
         (sample(?o) as ?example)
         (count(?s) as ?count)
@@ -132,10 +154,7 @@ if __name__ == '__main__':
     print "Outbreak types"
     # This could be useful for identifying infectious agents which
     # often appear in the "compound" dependencies on the word "outbreak"
-    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":"""
-    prefix anno: <http://www.eha.io/types/annotation_prop/>
-    prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
-    prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
     SELECT ?outbreakP ?outbreakType
     WHERE {
         ?outbreakP anno:root/rdfs:label "outbreak"
@@ -159,9 +178,7 @@ if __name__ == '__main__':
     print_result(result)
     
     print "Compound subjects"
-    print_result(requests.post(config.SPARQLDB_URL + "/query", data={"query":"""
-    prefix anno: <http://www.eha.io/types/annotation_prop/>
-    prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
+    print_result(requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
     SELECT ?subject
     WHERE {
         ?subject dep:compound/dep:compound ?c
