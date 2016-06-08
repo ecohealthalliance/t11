@@ -5,3 +5,4 @@ jinja2
 pymongo
 dictdiffer
 pylint
+schema

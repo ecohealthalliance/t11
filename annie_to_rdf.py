@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 This iterates over stored articles loading their annie annotations
-into a SPARQL DB. 
+into a SPARQL DB.
 """
 import argparse
 from templater import make_template
@@ -93,7 +93,7 @@ def create_annotations(article_uri, annotated_doc):
         resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": update_query})
         resp.raise_for_status()
 
-if __name__ == '__main__':
+def do_create_annotations():
     annotators = [
         KeywordAnnotator(),
         GeonameAnnotator(),
@@ -135,3 +135,6 @@ if __name__ == '__main__':
                 for annotator in annotators:
                     doc.add_tier(annotator)
                 create_annotations(article_uri, doc)
+
+if __name__ == '__main__':
+    do_create_annotations()
