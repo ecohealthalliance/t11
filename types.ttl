@@ -43,5 +43,5 @@ dep:prt rdf:type anno:dependency_relation .
 dep:punct rdf:type anno:dependency_relation .
 dep:quantmod rdf:type anno:dependency_relation .
 dep:relcl rdf:type anno:dependency_relation .
-dep:root rdf:type anno:dependency_relation .
+dep:ROOT rdf:type anno:dependency_relation .
 dep:xcomp rdf:type anno:dependency_relation .
