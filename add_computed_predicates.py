@@ -11,6 +11,7 @@ prefix pro: <http://www.eha.io/types/promed/>
 prefix anno: <http://www.eha.io/types/annotation_prop/>
 prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
 prefix dc: <http://purl.org/dc/terms/>
+prefix rdf: <http://www.w3.org/2000/01/rdf-schema#>
 prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 prefix eha: <http://www.eha.io/types/>
 """
@@ -24,7 +25,7 @@ if __name__ == '__main__':
             ; anno:end ?p1end
             ; anno:source_doc ?same_source
             .
-        ?dep_rel a anno:dependency_relation .
+        ?dep_rel rdf:type anno:dependency_relation .
         ?parent ?dep_rel ?p1 .
         ?p2 anno:start ?p2start
             ; anno:end ?p2end
@@ -70,7 +71,7 @@ if __name__ == '__main__':
             ; anno:end ?p1end
             ; anno:source_doc ?same_source
             .
-        ?dep_rel a anno:dependency_relation .
+        ?dep_rel rdf:type anno:dependency_relation .
         ?parent ?dep_rel ?p1 .
         ?p2 anno:start ?p2start
             ; anno:end ?p2end

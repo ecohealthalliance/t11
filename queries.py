@@ -11,6 +11,7 @@ prefix anno: <http://www.eha.io/types/annotation_prop/>
 prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
 prefix dc: <http://purl.org/dc/terms/>
 prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+prefix rdf: <http://www.w3.org/2000/01/rdf-schema#>
 prefix eha: <http://www.eha.io/types/>
 """
 def print_result(result):
@@ -57,7 +58,7 @@ if __name__ == '__main__':
     result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
     SELECT ?parent ?target ?descriptor ?dep_rel ?rel
     WHERE {
-        ?dep_rel a anno:dependency_relation .
+        ?dep_rel rdf:type anno:dependency_relation .
         VALUES ?dep_rel { dep:amod dep:nmod }
         ?parent anno:min_contains ?target
             ; ?dep_rel ?descriptor
@@ -140,10 +141,10 @@ if __name__ == '__main__':
         ?o ?p ?s .
         OPTIONAL {
             ?o ?p2 ?s2 .
-            ?p2 a anno:dependency_relation .
+            ?p2 rdf:type anno:dependency_relation .
             FILTER(?s != ?s2)
         } .
-        ?p a anno:dependency_relation
+        ?p rdf:type anno:dependency_relation
     }
     GROUP BY ?p ?p2
     ORDER BY DESC(?count)
