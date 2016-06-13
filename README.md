@@ -1,5 +1,10 @@
 Scripts for loading NLP annotations into a SPARQL Database
 
+# Requirements
+
+Apache Fuseki requires Oracle JDK 8.x and above.
+The latest release can be found [here](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
+
 # To run [Fuseki](https://jena.apache.org/documentation/fuseki2/index.html)
 
 ```
