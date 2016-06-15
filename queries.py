@@ -54,42 +54,6 @@ def print_result(result):
         print "~~--~~--~~"
 
 if __name__ == '__main__':
-    print "Accuracy of annie annotations compared to human annotations"
-    result = requests.post(config.SPARQLDB_URL + "/query", data={"query": prefixes + """
-    SELECT
-        ?overlap
-        (count(DISTINCT ?annotation1) AS ?correctAnnotations)
-        (count(DISTINCT ?annotation2) AS ?selectedAnnotations)
-    WHERE {
-        ?annotation1 anno:annotator eha:tater
-            ; anno:start ?start1
-            ; anno:end ?end1
-            ; anno:source_doc ?source
-            .
-        ?annotation2 anno:annotator eha:annie
-            ; anno:category "diseases"
-            ; anno:start ?start2
-            ; anno:end ?end2
-            ; anno:source_doc ?source
-            .
-        # The annotations overlap
-        BIND((?start1 >= ?start2 && ?start1 <= ?end2) || (?start2 >= ?start1 && ?start2 <= ?end1) AS ?overlap)
-    } GROUP BY ?overlap
-    """}, headers={"Accept":"application/sparql-results+json" })
-    result.raise_for_status()
-    stats = {}
-    for binding in result.json()['results']['bindings']:
-        if binding['overlap']['value'] == 'false':
-            stats['tpfp'] = int(binding['selectedAnnotations']['value'])
-            stats['tpfn'] = int(binding['correctAnnotations']['value'])
-        else:
-            stats['tp'] = int(binding['correctAnnotations']['value'])
-    stats['precision'] = float(stats['tp']) / stats['tpfp']
-    stats['recall'] = float(stats['tp']) / stats['tpfn']
-    stats['f1'] = 2 * stats['precision'] * stats['recall'] / (stats['precision'] + stats['recall'])
-    for key, value in stats.items():
-        print key + ": " + str(value) 
-    assert False
     print "Count articles and posts"
     result = requests.post(config.SPARQLDB_URL + "/query", data={"query": prefixes + """
     SELECT

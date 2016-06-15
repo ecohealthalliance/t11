@@ -57,6 +57,20 @@ if __name__ == '__main__':
         resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": update_query})
         resp.raise_for_status()
         print("Imported " + uri)
+    for header in db.headers.find({}):
+        uri = "http://t11.tater.io/headers/" + header['_id']
+        update_query = make_template("""
+        prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        INSERT DATA {
+            <{{uri}}> rdfs:label "{{header['label'] | escape}}"
+        }
+        """).render(
+            uri=uri,
+            header=header
+        )
+        resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": update_query})
+        resp.raise_for_status()
+        print("Imported " + uri)
     for annotation in db.annotations.find({}):
         uri = "http://t11.tater.io/annotations/" + annotation['_id']
         update_query = make_template("""
