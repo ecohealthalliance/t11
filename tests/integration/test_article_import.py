@@ -28,7 +28,7 @@ class TestArticleImportCount(unittest.TestCase):
         headers = {"Accept": "application/sparql-results+json"}
         raw_response = requests.post("http://localhost:3030/dataset/query", data=request, headers=headers)
         response = json.loads(raw_response.content)
-        print json.dumps(response, indent=4, sort_keys=True)
+        #print json.dumps(response, indent=4, sort_keys=True)
         schema = Schema({
             'head': {'vars': ['word', 'count']},
             'results': {

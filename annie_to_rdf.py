@@ -93,7 +93,7 @@ def create_annotations(article_uri, annotated_doc):
         resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": update_query})
         resp.raise_for_status()
 
-def do_create_annotations():
+if __name__ == '__main__':
     annotators = [
         KeywordAnnotator(),
         GeonameAnnotator(),
@@ -135,6 +135,3 @@ def do_create_annotations():
                 for annotator in annotators:
                     doc.add_tier(annotator)
                 create_annotations(article_uri, doc)
-
-if __name__ == '__main__':
-    do_create_annotations()
