@@ -42,7 +42,10 @@ def resolve_keyword(keyword):
         print bindings
     return [binding['entity']['value'] for binding in bindings]
 
-def create_annotations(article_uri, annotated_doc):
+def create_annotations(article_uri, content):
+    annotated_doc = AnnoDoc(content)
+    for annotator in annotators:
+        annotated_doc.add_tier(annotator)
     def get_span_uri(span):
         h = hashlib.md5()
         h.update(article_uri)
@@ -73,13 +76,13 @@ def create_annotations(article_uri, annotated_doc):
                 ; anno:selected-text "{{span.text | escape}}"
                 ; anno:annotator eha:annie
         } ;
-            {% if tier_name == "diseases" %}
-                INSERT DATA {
-                    {% for entity_uri in resolve_keyword(span.label) %}
-                         <{{entity_uri}}> dc:relation <{{get_span_uri(span)}}> .
-                    {% endfor %}
-                } ;
-            {% endif %}
+        {% if tier_name == "diseases" %}
+            INSERT DATA {
+                {% for entity_uri in resolve_keyword(span.label) %}
+                     <{{entity_uri}}> dc:relation <{{get_span_uri(span)}}> .
+                {% endfor %}
+            } ;
+        {% endif %}
         {% endfor %}
         INSERT DATA {
             <{{source_doc}}> anno:annotated_by eha:annie
@@ -98,26 +101,27 @@ if __name__ == '__main__':
         KeywordAnnotator(),
         GeonameAnnotator(),
     ]
-    article_query_template = make_template("""
-    prefix pro: <http://www.eha.io/types/promed/>
+    query_template = make_template("""
+    prefix con: <http://www.eha.io/types/content/>
     prefix anno: <http://www.eha.io/types/annotation_prop/>
     prefix eha: <http://www.eha.io/types/>
-    SELECT ?article_uri ?content
+    SELECT ?item_uri ?content
     WHERE {
-        ?article_uri pro:text ?content
-            ; pro:date ?date
+        ?item_uri con:text ?content
+        FILTER(strstarts(str(?item_uri), "http://t11.tater.io/documents/"))
         FILTER NOT EXISTS {
-            ?article_uri anno:annotated_by eha:annie
+            ?item_uri anno:annotated_by eha:annie
         }
     }
-    ORDER BY ?date
+    ORDER BY ?item_uri
     LIMIT 100
     OFFSET {{ offset }}
     """)
     offset = 0
     while True:
+        print("Offset: " + str(offset))
         result = requests.post(config.SPARQLDB_URL + "/query", data={
-            "query": article_query_template.render(offset=offset)
+            "query": query_template.render(offset=offset)
         }, headers={"Accept":"application/sparql-results+json" })
         result.raise_for_status()
         bindings = result.json()['results']['bindings']
@@ -127,11 +131,7 @@ if __name__ == '__main__':
         else:
             offset += len(bindings)
             for binding in bindings:
-                article_uri = binding['article_uri']['value']
+                item_uri = binding['item_uri']['value']
                 content = binding['content']['value']
-                print("Parsing " + article_uri)
-                text = 'I thought I had a spot of periodontitis but it turned out to be Endometrial Endometrioid Adenocarcinoma with squamous differentiation.'
-                doc = AnnoDoc(content)
-                for annotator in annotators:
-                    doc.add_tier(annotator)
-                create_annotations(article_uri, doc)
+                print("Annotating " + item_uri)
+                create_annotations(item_uri, content)

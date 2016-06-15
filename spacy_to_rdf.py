@@ -15,7 +15,11 @@ import requests
 import hashlib
 import config
 
-def create_annotations(article_uri, tokens):
+spacy_parser = English()
+print("Spacy Ready!")
+
+def create_annotations(article_uri, content):
+    tokens = spacy_parser(content)
     token_to_range = {}
     def update_range(r1, r2):
         if r1 is None:
@@ -92,17 +96,13 @@ def create_annotations(article_uri, tokens):
         resp.raise_for_status()
 
 if __name__ == '__main__':
-    spacy_parser = English()
-    print("Spacy Ready!")
-    
     article_query_template = make_template("""
-    prefix pro: <http://www.eha.io/types/promed/>
-    SELECT ?article_uri ?content
+    prefix con: <http://www.eha.io/types/content/>
+    SELECT ?item_uri ?content
     WHERE {
-        ?article_uri pro:text ?content
-            ; pro:date ?date
+        ?item_uri con:text ?content
     }
-    ORDER BY ?date
+    ORDER BY ?item_uri
     LIMIT 100
     OFFSET {{ offset }}
     """)
@@ -119,8 +119,7 @@ if __name__ == '__main__':
         else:
             offset += len(bindings)
             for binding in bindings:
-                article_uri = binding['article_uri']['value']
+                item_uri = binding['item_uri']['value']
                 content = binding['content']['value']
-                print("Parsing " + article_uri)
-                tokens = spacy_parser(content)
-                create_annotations(article_uri, tokens)
+                print("Parsing " + item_uri)
+                create_annotations(item_uri, content)
