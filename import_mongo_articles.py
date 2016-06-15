@@ -57,9 +57,10 @@ if __name__ == '__main__':
             article_uri = post_uri + "#" + str(idx)
             update_query = make_template("""
             prefix pro: <http://www.eha.io/types/promed/>
+            prefix con: <http://www.eha.io/types/content/>
             prefix xsd: <http://www.w3.org/2001/XMLSchema#>
             INSERT DATA {
-                <{{article_uri}}> pro:text "{{content | escape}}" ;
+                <{{article_uri}}> con:text "{{content | escape}}" ;
                                   pro:post <{{post_uri}}>
                  {% if date %}
                     ; pro:date "{{date | sparqlDate}}"^^xsd:dateTime

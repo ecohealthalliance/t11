@@ -7,7 +7,6 @@ import config
 import datetime
 
 prefixes = """
-prefix pro: <http://www.eha.io/types/promed/>
 prefix anno: <http://www.eha.io/types/annotation_prop/>
 prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
 prefix dc: <http://purl.org/dc/terms/>
