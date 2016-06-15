@@ -20,6 +20,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     db = pymongo.MongoClient(args.mongo_url)[args.db_name]
 
+    def resolve_report(archive_num):
+        post = db.posts.find_one({'archiveNumber': archive_num})
+        if post:
+            return "http://www.promedmail.org/post/" + post.get('promedId')
+
     query = {}
     print("Number of articles to process:")
     print(db.posts.find(query).count())
@@ -31,12 +36,18 @@ if __name__ == '__main__':
         prefix xsd: <http://www.w3.org/2001/XMLSchema#>
         INSERT DATA {
             <{{post_uri}}> pro:date "{{promedDate | sparqlDate}}"^^xsd:dateTime
-             {% if feedId %}
+                ; pro:subject_raw "{{subject.raw | escape}}"
+                ; pro:archiveNumber "{{archiveNumber}}"
+            {% for linkedReport in resolvedLinkedReports %}
+                ; pro:linkedReport <{{linkedReport}}>
+            {% endfor %}
+            {% if feedId %}
                 ; pro:feed_id "{{feedId}}"
-             {% endif %}
+            {% endif %}
         }
         """).render(
             post_uri=post_uri,
+            resolvedLinkedReports=filter(lambda x:x, map(resolve_report, post['linkedReports'])),
             **post)
         resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": update_query})
         resp.raise_for_status()

@@ -54,9 +54,20 @@ def print_result(result):
         print "~~--~~--~~"
 
 if __name__ == '__main__':
+    print "Count articles and posts"
+    result = requests.post(config.SPARQLDB_URL + "/query", data={"query": prefixes + """
+    SELECT
+        (count(DISTINCT ?article) AS ?articles)
+        (count(DISTINCT ?post) AS ?posts)
+    WHERE {
+        ?article pro:post ?post
+    }
+    """}, headers={"Accept":"application/sparql-results+json" })
+    print_result(result)
+    assert False
     print "Descriptors of resolved disease names"
     result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
-    SELECT ?parent ?target ?descriptor ?dep_rel ?rel
+    SELECT ?parent ?target ?descriptor ?dep_rel ?rel ?pos
     WHERE {
         ?dep_rel rdf:type anno:dependency_relation .
         VALUES ?dep_rel { dep:amod dep:nmod }
@@ -65,18 +76,20 @@ if __name__ == '__main__':
             .
         ?descriptor anno:start ?d_start
             ; anno:end ?d_end
+            ; anno:root/anno:pos ?pos
             .
+        FILTER (?pos NOT IN ("X", "PUNCT"))
         ?target anno:category "diseases"
             ; anno:start ?t_start
             ; anno:end ?t_end
             ; ^dc:relation ?rel
             .
+        ?rel rdf:label "malaria" .
         # The descriptor is outside of the target
         FILTER ( ?d_end <= ?t_start || ?t_end <= ?d_start )
     } LIMIT 100
     """}, headers={"Accept":"application/sparql-results+json" })
     print_result(result)
-    
     print "Pathogens and the sentences they appear in"
     result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
     SELECT ?phrase ?target
