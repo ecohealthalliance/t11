@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 This iterates over stored articles loading their annie annotations
-into a SPARQL DB. 
+into a SPARQL DB.
 """
 import argparse
 from templater import make_template
