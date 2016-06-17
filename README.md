@@ -14,27 +14,27 @@ cd apache-jena-fuseki-2.4.0
 mkdir DB
 ./fuseki-server --update --loc=DB /dataset
 ```
-In another window load the types data:
+
+## To load type data used by this project:
+
 ```
-./bin/s-post http://localhost:3030/dataset default ../types.ttl
+./s-post http://localhost:3030/dataset default types.ttl
 ```
 
 ## To import a Fuseki database
 
-Stop Fuseki.
-
 ```
 sudo apt-get install awscli
 # Configure your aws access key. It must be in the grits-dev group.
-aws s3 cp s3://promed-database/sparql-annotation-database/DB.tar.gz
-tar -xvzf DB.tar.gz [Your DB directory location]
+aws s3 cp s3://promed-database/sparql-annotation-database/dump.ttl
+./s-post http://localhost:3030/dataset default dump.ttl
 ```
 
 ## To create a new backup
 
 ```
-tar -cvzf DB.tar.gz [Your DB directory location]
-aws s3 cp DB.tar.gz s3://promed-database/sparql-annotation-database/DB.tar.gz
+./s-get http://localhost:3030/dataset default > dump.ttl 2>&1
+aws s3 cp dump.ttl s3://promed-database/sparql-annotation-database/dump.ttl
 ```
 
 # To run the Python scripts

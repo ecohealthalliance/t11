@@ -33,6 +33,7 @@ if __name__ == '__main__':
             ; anno:start ?start2
             ; anno:end ?end2
             ; anno:source_doc ?source
+            ; ^dc:relation ?resolved
             .
         # The annotations overlap
         BIND((?start1 >= ?start2 && ?start1 <= ?end2) || (?start2 >= ?start1 && ?start2 <= ?end1) AS ?overlap)
