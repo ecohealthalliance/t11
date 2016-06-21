@@ -79,6 +79,9 @@ def create_annotations(article_uri, content):
         } ;
         INSERT DATA {
             <{{parent_phrase_ref}}> dep:{{dep}} <{{pharse_ref}}>
+        } ;
+        INSERT DATA {
+            <{{source_doc}}> anno:annotated_by eha:annie
         }
         """).render(
             source_doc=article_uri,
@@ -96,20 +99,32 @@ def create_annotations(article_uri, content):
         resp.raise_for_status()
 
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--max_items", default="-1"
+    )
+    args = parser.parse_args()
+    max_items = int(args.max_items)
     article_query_template = make_template("""
     prefix con: <http://www.eha.io/types/content/>
+    prefix anno: <http://www.eha.io/types/annotation_prop/>
+    prefix eha: <http://www.eha.io/types/>
     SELECT ?item_uri ?content
     WHERE {
         ?item_uri con:text ?content
+        FILTER NOT EXISTS {
+            ?item_uri anno:annotated_by eha:spacy
+        }
     }
     ORDER BY ?item_uri
     LIMIT 100
-    OFFSET {{ offset }}
     """)
-    offset = 0
-    while True:
+    items_processed = 0
+    while max_items < 0 or items_processed < max_items:
+        print("Items processed: " + str(items_processed))
         result = requests.post(config.SPARQLDB_URL + "/query", data={
-            "query": article_query_template.render(offset=offset)
+            "query": article_query_template.render()
         }, headers={"Accept":"application/sparql-results+json" })
         result.raise_for_status()
         bindings = result.json()['results']['bindings']
@@ -117,7 +132,7 @@ if __name__ == '__main__':
             print "No more results"
             break
         else:
-            offset += len(bindings)
+            items_processed += len(bindings)
             for binding in bindings:
                 item_uri = binding['item_uri']['value']
                 content = binding['content']['value']

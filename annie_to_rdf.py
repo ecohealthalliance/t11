@@ -14,6 +14,11 @@ from annotator.keyword_annotator import KeywordAnnotator
 from annotator.geoname_annotator import GeonameAnnotator
 import re
 
+annotators = [
+    KeywordAnnotator(),
+    GeonameAnnotator(),
+]
+
 def resolve_keyword(keyword):
     query = make_template("""
     prefix anno: <http://www.eha.io/types/annotation_prop/>
@@ -74,7 +79,6 @@ def create_annotations(article_uri, content):
                 ; anno:start {{span.start}}
                 ; anno:end {{span.end}}
                 ; anno:selected-text "{{span.text | escape}}"
-                ; anno:annotator eha:annie
         } ;
         {% if tier_name == "diseases" %}
             INSERT DATA {
@@ -97,10 +101,13 @@ def create_annotations(article_uri, content):
         resp.raise_for_status()
 
 if __name__ == '__main__':
-    annotators = [
-        KeywordAnnotator(),
-        GeonameAnnotator(),
-    ]
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--max_items", default="-1"
+    )
+    args = parser.parse_args()
+    max_items = int(args.max_items)
     query_template = make_template("""
     prefix con: <http://www.eha.io/types/content/>
     prefix anno: <http://www.eha.io/types/annotation_prop/>
@@ -108,20 +115,19 @@ if __name__ == '__main__':
     SELECT ?item_uri ?content
     WHERE {
         ?item_uri con:text ?content
-        FILTER(strstarts(str(?item_uri), "http://t11.tater.io/documents/"))
+        # FILTER(strstarts(str(?item_uri), "http://t11.tater.io/documents/"))
         FILTER NOT EXISTS {
             ?item_uri anno:annotated_by eha:annie
         }
     }
     ORDER BY ?item_uri
     LIMIT 100
-    OFFSET {{ offset }}
     """)
-    offset = 0
-    while True:
-        print("Offset: " + str(offset))
+    items_processed = 0
+    while max_items < 0 or items_processed < max_items:
+        print("Items processed: " + str(items_processed))
         result = requests.post(config.SPARQLDB_URL + "/query", data={
-            "query": query_template.render(offset=offset)
+            "query": query_template.render()
         }, headers={"Accept":"application/sparql-results+json" })
         result.raise_for_status()
         bindings = result.json()['results']['bindings']
@@ -129,7 +135,7 @@ if __name__ == '__main__':
             print "No more results"
             break
         else:
-            offset += len(bindings)
+            items_processed += len(bindings)
             for binding in bindings:
                 item_uri = binding['item_uri']['value']
                 content = binding['content']['value']
