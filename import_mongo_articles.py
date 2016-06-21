@@ -8,6 +8,7 @@ import argparse
 from templater import make_template
 import requests
 import config
+import datetime
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -17,8 +18,15 @@ if __name__ == '__main__':
     parser.add_argument(
         "--db_name", default='promed'
     )
+    parser.add_argument(
+        "--last_n_days", default=None
+    )
     args = parser.parse_args()
     db = pymongo.MongoClient(args.mongo_url)[args.db_name]
+
+    min_date = None
+    if args.last_n_days:
+        min_date = datetime.datetime.now() - datetime.timedelta(int(args.last_n_days))
 
     def resolve_report(archive_num):
         post = db.posts.find_one({'archiveNumber': archive_num})
@@ -26,6 +34,10 @@ if __name__ == '__main__':
             return "http://www.promedmail.org/post/" + post.get('promedId')
 
     query = {}
+    if min_date:
+        query["promedDate"] = {
+            "$gte": min_date
+        }
     print("Number of articles to process:")
     print(db.posts.find(query).count())
     for post in db.posts.find(query):
@@ -46,6 +58,7 @@ if __name__ == '__main__':
             {% endif %}
         }
         """).render(
+            min_date=min_date,
             post_uri=post_uri,
             resolvedLinkedReports=filter(lambda x:x, map(resolve_report, post['linkedReports'])),
             **post)
