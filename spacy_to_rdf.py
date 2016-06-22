@@ -117,7 +117,7 @@ if __name__ == '__main__':
             ?item_uri anno:annotated_by eha:spacy
         }
     }
-    ORDER BY ?item_uri
+    ORDER BY rand()
     LIMIT 100
     """)
     items_processed = 0
