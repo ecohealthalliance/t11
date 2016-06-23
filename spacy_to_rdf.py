@@ -81,7 +81,7 @@ def create_annotations(article_uri, content):
             <{{parent_phrase_ref}}> dep:{{dep}} <{{pharse_ref}}>
         } ;
         INSERT DATA {
-            <{{source_doc}}> anno:annotated_by eha:annie
+            <{{source_doc}}> anno:annotated_by eha:spacy_0
         }
         """).render(
             source_doc=article_uri,
@@ -114,7 +114,7 @@ if __name__ == '__main__':
     WHERE {
         ?item_uri con:text ?content
         FILTER NOT EXISTS {
-            ?item_uri anno:annotated_by eha:spacy
+            ?item_uri anno:annotated_by eha:spacy_0
         }
     }
     ORDER BY rand()

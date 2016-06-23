@@ -54,17 +54,6 @@ def print_result(result):
         print "~~--~~--~~"
 
 if __name__ == '__main__':
-    print "Count articles and posts"
-    result = requests.post(config.SPARQLDB_URL + "/query", data={"query": prefixes + """
-    SELECT
-        (count(DISTINCT ?article) AS ?articles)
-        (count(DISTINCT ?post) AS ?posts)
-    WHERE {
-        ?article pro:post ?post
-    }
-    """}, headers={"Accept":"application/sparql-results+json" })
-    print_result(result)
-    assert False
     print "Descriptors of resolved disease names"
     result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
     SELECT ?parent ?target ?descriptor ?dep_rel ?rel ?pos

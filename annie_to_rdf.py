@@ -91,7 +91,7 @@ def create_annotations(article_uri, content):
         {% endif %}
         {% endfor %}
         INSERT DATA {
-            <{{source_doc}}> anno:annotated_by eha:annie
+            <{{source_doc}}> anno:annotated_by eha:annie_0
         }
         """).render(
             get_span_uri=get_span_uri,
@@ -119,7 +119,7 @@ if __name__ == '__main__':
         ?item_uri con:text ?content
         # FILTER(strstarts(str(?item_uri), "http://t11.tater.io/documents/"))
         FILTER NOT EXISTS {
-            ?item_uri anno:annotated_by eha:annie
+            ?item_uri anno:annotated_by eha:annie_0
         }
     }
     ORDER BY rand()

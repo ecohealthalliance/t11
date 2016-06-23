@@ -6,3 +6,4 @@ pymongo
 dictdiffer
 pylint
 schema
+pylru
