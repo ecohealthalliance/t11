@@ -12,7 +12,7 @@ wget http://ftp.mirror.tw/pub/apache/jena/binaries/apache-jena-fuseki-2.4.0.tar.
 tar -xvzf apache-jena-fuseki-2.4.0.tar.gz
 cd apache-jena-fuseki-2.4.0
 mkdir DB
-#Increase the JVM heap size if GC overhead errors occur
+# Increase the JVM heap size if GC overhead errors occur
 JVM_ARGS=-Xmx3210m ./fuseki-server --update --loc=DB /dataset
 ```
 
@@ -28,6 +28,7 @@ JVM_ARGS=-Xmx3210m ./fuseki-server --update --loc=DB /dataset
 sudo apt-get install awscli
 # Configure your aws access key. It must be in the grits-dev group.
 aws s3 cp s3://promed-database/sparql-annotation-database/dump.ttl
+# This could take a long time. Try increasing the Fuseki JVM heap size if it takes a really really long time.
 ./s-post http://localhost:3030/dataset default dump.ttl
 ```
 
