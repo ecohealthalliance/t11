@@ -13,12 +13,14 @@ from annotator.annotator import AnnoDoc
 from annotator.keyword_annotator import KeywordAnnotator
 from annotator.geoname_annotator import GeonameAnnotator
 import re
+from pylru import lrudecorator
 
 annotators = [
     KeywordAnnotator(),
     GeonameAnnotator(),
 ]
 
+@lrudecorator(500)
 def resolve_keyword(keyword):
     query = make_template("""
     prefix anno: <http://www.eha.io/types/annotation_prop/>
