@@ -13,7 +13,7 @@ tar -xvzf apache-jena-fuseki-2.4.0.tar.gz
 cd apache-jena-fuseki-2.4.0
 mkdir DB
 # Increase the JVM heap size if GC overhead errors occur
-JVM_ARGS=-Xmx3210m ./fuseki-server --update --loc=DB /dataset
+JVM_ARGS=-Xmx3210m ./fuseki-server -v  --jetty-config=jetty.xml --update --loc=DB /dataset
 ```
 
 ## To load type data used by this project:
