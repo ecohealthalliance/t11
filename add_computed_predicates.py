@@ -15,6 +15,10 @@ prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 prefix eha: <http://www.eha.io/types/>
 """
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-debug', action='store_true')
+    args = parser.parse_args()
     start = datetime.datetime.now()
     print "Computing containment relationships between keyword annotations and depency parse annotations..."
     update_query = prefixes+"""
@@ -61,33 +65,34 @@ if __name__ == '__main__':
     resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": update_query})
     resp.raise_for_status()
     print "Finished in", datetime.datetime.now() - start
-    start = datetime.datetime.now()
-    print "Testing query speed without containment predicate..."
-    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
-    SELECT ?p1 ?p2
-    WHERE {
-        ?p1 anno:start ?p1start
-            ; anno:end ?p1end
-            ; anno:source_doc ?same_source
-            .
-        ?dep_rel rdf:type anno:dependency_relation .
-        ?parent ?dep_rel ?p1 .
-        ?p2 anno:start ?p2start
-            ; anno:end ?p2end
-            ; anno:source_doc ?same_source
-            ; anno:category "diseases"
-            .
-        FILTER ( ?p1start <= ?p2start && ?p1end >= ?p2end )
-        FILTER (?p1 != ?p2)
-    }
-    """}, headers={"Accept":"application/sparql-results+json" })
-    print "Finished in", datetime.datetime.now() - start
-    start = datetime.datetime.now()
-    print "Testing query speed with containment predicate..."
-    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
-    SELECT ?p1 ?p2
-    WHERE {
-        ?p1 anno:contains ?p2
-    }
-    """}, headers={"Accept":"application/sparql-results+json" })
-    print "Finished in", datetime.datetime.now() - start
+    if args.debug:
+        start = datetime.datetime.now()
+        print "Testing query speed without containment predicate..."
+        result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
+        SELECT ?p1 ?p2
+        WHERE {
+            ?p1 anno:start ?p1start
+                ; anno:end ?p1end
+                ; anno:source_doc ?same_source
+                .
+            ?dep_rel rdf:type anno:dependency_relation .
+            ?parent ?dep_rel ?p1 .
+            ?p2 anno:start ?p2start
+                ; anno:end ?p2end
+                ; anno:source_doc ?same_source
+                ; anno:category "diseases"
+                .
+            FILTER ( ?p1start <= ?p2start && ?p1end >= ?p2end )
+            FILTER (?p1 != ?p2)
+        }
+        """}, headers={"Accept":"application/sparql-results+json" })
+        print "Finished in", datetime.datetime.now() - start
+        start = datetime.datetime.now()
+        print "Testing query speed with containment predicate..."
+        result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
+        SELECT ?p1 ?p2
+        WHERE {
+            ?p1 anno:contains ?p2
+        }
+        """}, headers={"Accept":"application/sparql-results+json" })
+        print "Finished in", datetime.datetime.now() - start
