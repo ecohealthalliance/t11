@@ -43,9 +43,9 @@ def resolve_keyword(keyword):
     resp.raise_for_status()
     bindings = resp.json()['results']['bindings']
     if len(bindings) == 0:
-        print "no match for", keyword
+        print "no match for", keyword.encode('ascii', 'xmlcharrefreplace')
     elif len(bindings) > 1:
-        print "multiple matches for", keyword
+        print "multiple matches for", keyword.encode('ascii', 'xmlcharrefreplace')
         print bindings
     return [binding['entity']['value'] for binding in bindings]
 

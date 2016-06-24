@@ -54,13 +54,9 @@ def create_annotations(article_uri, content):
         assert isinstance(end, int)
         h.update(str(start) + ':' + str(end))
         return "http://www.eha.io/types/annotation/spacy/phrase/" + str(h.hexdigest())
+    token_inserts = []
     for token in tokens:
-        update_query = make_template("""
-        prefix anno: <http://www.eha.io/types/annotation_prop/>
-        prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
-        prefix eha: <http://www.eha.io/types/>
-        prefix rdf: <http://www.w3.org/2000/01/rdf-schema#>
-        
+        token_inserts.append(make_template("""
         INSERT DATA {
             <{{pharse_ref}}> rdf:type eha:dependent_pharse
                 ; anno:annotator eha:spacy
@@ -79,9 +75,6 @@ def create_annotations(article_uri, content):
         } ;
         INSERT DATA {
             <{{parent_phrase_ref}}> dep:{{dep}} <{{pharse_ref}}>
-        } ;
-        INSERT DATA {
-            <{{source_doc}}> anno:annotated_by eha:spacy_0
         }
         """).render(
             source_doc=article_uri,
@@ -94,9 +87,19 @@ def create_annotations(article_uri, content):
             token_ref=get_token_uri(token),
             pharse_ref=get_pharse_uri(token),
             parent_phrase_ref=get_pharse_uri(token.head),
-            dep=token.dep_)
-        resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": update_query})
-        resp.raise_for_status()
+            dep=token.dep_))
+    token_inserts.append(make_template("""
+    INSERT DATA {
+        <{{source_doc}}> anno:annotated_by eha:spacy_0
+    }
+    """).render(source_doc=article_uri))
+    resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": """
+    prefix anno: <http://www.eha.io/types/annotation_prop/>
+    prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
+    prefix eha: <http://www.eha.io/types/>
+    prefix rdf: <http://www.w3.org/2000/01/rdf-schema#>
+    """ + "\n;\n".join(token_inserts)})
+    resp.raise_for_status()
 
 if __name__ == '__main__':
     import argparse
