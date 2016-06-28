@@ -27,7 +27,8 @@ JVM_ARGS=-Xmx3210m ./fuseki-server -v  --jetty-config=jetty.xml --update --loc=D
 ```
 sudo apt-get install awscli
 # Configure your aws access key. It must be in the grits-dev group.
-aws s3 cp s3://promed-database/sparql-annotation-database/dump.ttl
+aws s3 cp s3://promed-database/sparql-annotation-database/dump.ttl.gz
+gzip -d dump.ttl.gz
 # This could take a long time. Try increasing the Fuseki JVM heap size if it takes a really really long time.
 ./s-post http://localhost:3030/dataset default dump.ttl
 ```
@@ -36,7 +37,8 @@ aws s3 cp s3://promed-database/sparql-annotation-database/dump.ttl
 
 ```
 ./s-get http://localhost:3030/dataset default > dump.ttl 2>&1
-aws s3 cp dump.ttl s3://promed-database/sparql-annotation-database/dump.ttl
+gzip dump.ttl
+aws s3 cp dump.ttl s3://promed-database/sparql-annotation-database/dump.ttl.gz
 ```
 
 # To run the Python scripts

@@ -8,6 +8,7 @@ Useful resources related to spacy parse trees:
 https://nicschrading.com/project/Intro-to-NLP-with-spaCy/
 https://spacy.io/demos/displacy
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 import argparse
 from spacy.en import English
 from templater import make_template
@@ -93,12 +94,14 @@ def create_annotations(article_uri, content):
         <{{source_doc}}> anno:annotated_by eha:spacy_0
     }
     """).render(source_doc=article_uri))
-    resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": """
-    prefix anno: <http://www.eha.io/types/annotation_prop/>
-    prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
-    prefix eha: <http://www.eha.io/types/>
-    prefix rdf: <http://www.w3.org/2000/01/rdf-schema#>
-    """ + "\n;\n".join(token_inserts)})
+    resp = requests.post(config.SPARQLDB_URL + "/update", data={
+        "timeout": 60,
+        "update": """
+        prefix anno: <http://www.eha.io/types/annotation_prop/>
+        prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
+        prefix eha: <http://www.eha.io/types/>
+        prefix rdf: <http://www.w3.org/2000/01/rdf-schema#>
+        """ + "\n;\n".join(token_inserts)})
     resp.raise_for_status()
 
 if __name__ == '__main__':
@@ -125,19 +128,20 @@ if __name__ == '__main__':
     """)
     items_processed = 0
     while max_items < 0 or items_processed < max_items:
-        print("Items processed: " + str(items_processed))
+        print("Items processed: ", str(items_processed))
         result = requests.post(config.SPARQLDB_URL + "/query", data={
-            "query": article_query_template.render()
+            "query": article_query_template.render(),
+            "timeout": 60,
         }, headers={"Accept":"application/sparql-results+json" })
         result.raise_for_status()
         bindings = result.json()['results']['bindings']
         if len(bindings) == 0:
-            print "No more results"
+            print("No more results")
             break
         else:
             items_processed += len(bindings)
             for binding in bindings:
                 item_uri = binding['item_uri']['value']
                 content = binding['content']['value']
-                print("Parsing " + item_uri)
+                print("Parsing ", item_uri)
                 create_annotations(item_uri, content)

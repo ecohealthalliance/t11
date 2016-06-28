@@ -4,6 +4,7 @@
 This iterates over stored articles loading their annie annotations
 into a SPARQL DB.
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 import argparse
 from templater import make_template
 import requests
@@ -38,15 +39,16 @@ def resolve_keyword(keyword):
         keyword=re.escape(keyword)
     )
     resp = requests.post(config.SPARQLDB_URL + "/query", data={
-        "query": query
+        "query": query,
+        "timeout": 60,
     }, headers={"Accept":"application/sparql-results+json" })
     resp.raise_for_status()
     bindings = resp.json()['results']['bindings']
     if len(bindings) == 0:
-        print "no match for", keyword.encode('ascii', 'xmlcharrefreplace')
+        print("no match for", keyword.encode('ascii', 'xmlcharrefreplace'))
     elif len(bindings) > 1:
-        print "multiple matches for", keyword.encode('ascii', 'xmlcharrefreplace')
-        print bindings
+        print("multiple matches for", keyword.encode('ascii', 'xmlcharrefreplace'))
+        print(bindings)
     return [binding['entity']['value'] for binding in bindings]
 
 def create_annotations(article_uri, content):
@@ -99,7 +101,9 @@ def create_annotations(article_uri, content):
             source_doc=article_uri,
             tier_name=tier_name,
             spans=tier.spans)
-        resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": update_query})
+        resp = requests.post(config.SPARQLDB_URL + "/update", data={
+            "update": update_query,
+            "timeout": 60,})
         resp.raise_for_status()
 
 if __name__ == '__main__':
@@ -127,19 +131,20 @@ if __name__ == '__main__':
     """)
     items_processed = 0
     while max_items < 0 or items_processed < max_items:
-        print("Items processed: " + str(items_processed))
+        print("Items processed: ", str(items_processed))
         result = requests.post(config.SPARQLDB_URL + "/query", data={
-            "query": query_template.render()
+            "query": query_template.render(),
+            "timeout": 60,
         }, headers={"Accept":"application/sparql-results+json" })
         result.raise_for_status()
         bindings = result.json()['results']['bindings']
         if len(bindings) == 0:
-            print "No more results"
+            print("No more results")
             break
         else:
             items_processed += len(bindings)
             for binding in bindings:
                 item_uri = binding['item_uri']['value']
                 content = binding['content']['value']
-                print("Annotating " + item_uri)
+                print("Annotating ", item_uri)
                 create_annotations(item_uri, content)
