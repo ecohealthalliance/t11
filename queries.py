@@ -1,9 +1,8 @@
 """
 Example annotation database queries
 """
-import requests
 from templater import make_template
-import config
+import sparql_utils
 
 prefixes = """
 prefix pro: <http://www.eha.io/types/promed/>
@@ -15,7 +14,6 @@ prefix rdf: <http://www.w3.org/2000/01/rdf-schema#>
 prefix eha: <http://www.eha.io/types/>
 """
 def print_result(result):
-    result.raise_for_status()
     for binding in result.json()['results']['bindings']:
         for key, value in binding.items():
             raw_val = value['value']
@@ -38,7 +36,7 @@ def print_result(result):
                         ; anno:source_doc/con:text ?sourceText
                 }
                 """).render(annotation_uri=raw_val)
-                result = requests.post(config.SPARQLDB_URL + "/query", data={"query":query})
+                result = sparql_utils.query(query)
                 bindings = result.json()['results']['bindings']
                 if len(bindings) == 0:
                     print "Could not resolve source text for:"
@@ -55,7 +53,7 @@ def print_result(result):
 
 if __name__ == '__main__':
     print "Descriptors of resolved disease names"
-    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
+    query = prefixes+"""
     SELECT ?parent ?target ?descriptor ?dep_rel ?rel ?pos
     WHERE {
         ?dep_rel rdf:type anno:dependency_relation .
@@ -77,10 +75,11 @@ if __name__ == '__main__':
         # The descriptor is outside of the target
         FILTER ( ?d_end <= ?t_start || ?t_end <= ?d_start )
     } LIMIT 100
-    """}, headers={"Accept":"application/sparql-results+json" })
+    """
+    result = sparql_utils.query(query)
     print_result(result)
     print "Pathogens and the sentences they appear in"
-    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
+    query = prefixes+"""
     SELECT ?phrase ?target
     WHERE {
         ?phrase anno:start ?p_start
@@ -95,11 +94,11 @@ if __name__ == '__main__':
         ?target anno:source_doc ?same_source .
         FILTER ( ?t_start >= ?p_start && ?t_end <= ?p_end )
     } LIMIT 100
-    """}, headers={"Accept":"application/sparql-results+json" })
+    """
+    result = sparql_utils.query(query)
     print_result(result)
-
     print "Prepositions containing a location name"
-    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
+    query = prefixes+"""
     SELECT ?phrase ?prep
     WHERE {
         ?phrase dep:prep ?prep .
@@ -112,11 +111,11 @@ if __name__ == '__main__':
         ?s2     anno:source_doc ?same_source
         FILTER ( ?start2 >= ?start1 && ?end2 <= ?end1 )
     }
-    """}, headers={"Accept":"application/sparql-results+json" })
+    """
+    result = sparql_utils.query(query)
     print_result(result)
-    
     print "Most frequent nouns"
-    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
+    query = """
     SELECT ?word
         # (group_concat(DISTINCT ?s;separator=";;") as ?subjects)
         (count(?s) as ?count)
@@ -128,13 +127,13 @@ if __name__ == '__main__':
     GROUP BY ?word
     ORDER BY DESC(?count)
     LIMIT 10
-    """}, headers={"Accept":"application/sparql-results+json" })
+    """
+    result = sparql_utils.query(query)
     print_result(result)
-    
     print "Most common dependency relations around the given word:"
     # This could be useful for finding patterns in how certain types of words
     # are used.
-    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
+    query = prefixes+"""
     SELECT ?p ?p2
         (sample(?o) as ?example)
         (count(?s) as ?count)
@@ -151,25 +150,25 @@ if __name__ == '__main__':
     GROUP BY ?p ?p2
     ORDER BY DESC(?count)
     LIMIT 10
-    """}, headers={"Accept":"application/sparql-results+json" })
+    """
+    result = sparql_utils.query(query)
     print_result(result)
-    
     print "Outbreak types"
     # This could be useful for identifying infectious agents which
     # often appear in the "compound" dependencies on the word "outbreak"
-    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
+    query = prefixes+"""
     SELECT ?outbreakP ?outbreakType
     WHERE {
         ?outbreakP anno:root/rdfs:label "outbreak"
             ; dep:compound ?outbreakType
     }
-    """}, headers={"Accept":"application/sparql-results+json" })
+    """
+    result = sparql_utils.query(query)
     print_result(result)
-    
     print "Attributes of subjects"
     # Possibly useful for fact extraction.
     # However, coreference resolution is needed in most cases.
-    result = requests.post(config.SPARQLDB_URL + "/query", data={"query":"""
+    query = """
     prefix anno: <http://www.eha.io/types/annotation_prop/>
     prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
     SELECT ?nsubj ?phrase ?attr
@@ -177,13 +176,15 @@ if __name__ == '__main__':
         ?phrase dep:attr ?attr
             ; dep:nsubj ?nsubj
     }
-    """}, headers={"Accept":"application/sparql-results+json" })
+    """
+    result = sparql_utils.query(query)
     print_result(result)
-    
     print "Compound subjects"
-    print_result(requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
+    query = prefixes+"""
     SELECT ?subject
     WHERE {
         ?subject dep:compound/dep:compound ?c
     }
-    """}, headers={"Accept":"application/sparql-results+json" }))
+    """
+    result = sparql_utils.query(query)
+    print_result(result)

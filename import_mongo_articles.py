@@ -3,12 +3,18 @@
 """
 Import ProMED articles from mongo into SPARQL DB
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 import pymongo
 import argparse
 from templater import make_template
-import requests
-import config
 import datetime
+import sparql_utils
+
+prefixes = """
+prefix pro: <http://www.eha.io/types/promed/>
+prefix xsd: <http://www.w3.org/2001/XMLSchema#>
+prefix con: <http://www.eha.io/types/content/>
+"""
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -43,9 +49,7 @@ if __name__ == '__main__':
     for post in db.posts.find(query):
         # Create triples for post
         post_uri = "http://www.promedmail.org/post/" + post['promedId']
-        update_query = make_template("""
-        prefix pro: <http://www.eha.io/types/promed/>
-        prefix xsd: <http://www.w3.org/2001/XMLSchema#>
+        update_query = make_template(prefixes+"""
         INSERT DATA {
             <{{post_uri}}> pro:date "{{promedDate | sparqlDate}}"^^xsd:dateTime
                 ; pro:subject_raw "{{subject.raw | escape}}"
@@ -62,16 +66,12 @@ if __name__ == '__main__':
             post_uri=post_uri,
             resolvedLinkedReports=filter(lambda x:x, map(resolve_report, post['linkedReports'])),
             **post)
-        resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": update_query})
-        resp.raise_for_status()
+        sparql_utils.update(update_query)
         for idx, art in enumerate(post["articles"]):
             if not 'content' in art: continue
             # Create triples for article within the post
             article_uri = post_uri + "#" + str(idx)
-            update_query = make_template("""
-            prefix pro: <http://www.eha.io/types/promed/>
-            prefix con: <http://www.eha.io/types/content/>
-            prefix xsd: <http://www.w3.org/2001/XMLSchema#>
+            update_query = make_template(prefixes+"""
             INSERT DATA {
                 <{{article_uri}}> con:text "{{content | escape}}" ;
                                   pro:post <{{post_uri}}>
@@ -83,6 +83,5 @@ if __name__ == '__main__':
                 post_uri=post_uri,
                 article_uri=article_uri,
                 **art)
-            resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": update_query})
-            resp.raise_for_status()
+            sparql_utils.update(update_query)
             print("Imported " + article_uri)

@@ -6,8 +6,7 @@ Import Tater data into a SPARQL DB
 import pymongo
 import argparse
 from templater import make_template
-import requests
-import config
+import sparql_utils
 import json
 
 if __name__ == '__main__':
@@ -37,8 +36,7 @@ if __name__ == '__main__':
             uri=uri,
             doc=document
         )
-        resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": update_query})
-        resp.raise_for_status()
+        sparql_utils.update(update_query)
         print("Imported " + uri)
     for code in db.keywords.find({}):
         uri = "http://t11.tater.io/codingKeywords/" + code['_id']
@@ -54,8 +52,7 @@ if __name__ == '__main__':
             code=code,
             header_uri="http://t11.tater.io/headers/" + code['headerId']
         )
-        resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": update_query})
-        resp.raise_for_status()
+        sparql_utils.update(update_query)
         print("Imported " + uri)
     for header in db.headers.find({}):
         uri = "http://t11.tater.io/headers/" + header['_id']
@@ -68,8 +65,7 @@ if __name__ == '__main__':
             uri=uri,
             header=header
         )
-        resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": update_query})
-        resp.raise_for_status()
+        sparql_utils.update(update_query)
         print("Imported " + uri)
     for annotation in db.annotations.find({}):
         uri = "http://t11.tater.io/annotations/" + annotation['_id']
@@ -92,6 +88,5 @@ if __name__ == '__main__':
             code_uri="http://t11.tater.io/codingKeywords/" + annotation['codeId'],
             doc_uri="http://t11.tater.io/documents/" + annotation['documentId']
         )
-        resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": update_query})
-        resp.raise_for_status()
+        sparql_utils.update(update_query)
         print("Imported " + uri)

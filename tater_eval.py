@@ -1,9 +1,8 @@
 """
 Compare accuracty of computer annotations to human annotations
 """
-import requests
+import sparql_utils
 from templater import make_template
-import config
 
 prefixes = """
 prefix anno: <http://www.eha.io/types/annotation_prop/>
@@ -15,7 +14,7 @@ prefix eha: <http://www.eha.io/types/>
 prefix tater: <http://www.eha.io/types/tater/>
 """
 if __name__ == '__main__':
-    result = requests.post(config.SPARQLDB_URL + "/query", data={"query": prefixes + """
+    query = prefixes + """
     SELECT
         ?overlap
         (count(DISTINCT ?annotation1) AS ?correctAnnotations)
@@ -38,8 +37,8 @@ if __name__ == '__main__':
         # The annotations overlap
         BIND((?start1 >= ?start2 && ?start1 <= ?end2) || (?start2 >= ?start1 && ?start2 <= ?end1) AS ?overlap)
     } GROUP BY ?overlap
-    """}, headers={"Accept":"application/sparql-results+json" })
-    result.raise_for_status()
+    """
+    result = sparql_utils.query(query)
     stats = {}
     for binding in result.json()['results']['bindings']:
         if binding['overlap']['value'] == 'false':

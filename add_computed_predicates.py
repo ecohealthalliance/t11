@@ -1,9 +1,9 @@
 """
 This adds some relationships to the dataset for making queries simpler and/or more efficient.
 """
-import requests
+from __future__ import absolute_import, division, print_function, unicode_literals
 from templater import make_template
-import config
+import sparql_utils
 import datetime
 
 prefixes = """
@@ -13,15 +13,24 @@ prefix dc: <http://purl.org/dc/terms/>
 prefix rdf: <http://www.w3.org/2000/01/rdf-schema#>
 prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 prefix eha: <http://www.eha.io/types/>
+prefix pro: <http://www.eha.io/types/promed/>
+prefix xsd: <http://www.w3.org/2001/XMLSchema#>
 """
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('-debug', action='store_true')
+    parser.add_argument(
+        "--last_n_days", default=None
+    )
     args = parser.parse_args()
+    min_date = None
+    if args.last_n_days:
+        min_date = datetime.datetime.now() - datetime.timedelta(int(args.last_n_days))
     start = datetime.datetime.now()
-    print "Computing containment relationships between keyword annotations and depency parse annotations..."
-    update_query = prefixes+"""
+    print("Computing containment relationships between keyword annotations and depency parse annotations...")
+    query = prefixes+make_template("""
     INSERT { ?p1 anno:contains ?p2 }
     WHERE {
         ?p1 anno:start ?p1start
@@ -37,13 +46,16 @@ if __name__ == '__main__':
             .
         FILTER ( ?p1start <= ?p2start && ?p1end >= ?p2end )
         FILTER (?p1 != ?p2)
+        {% if min_date %}
+            ?same_source pro:post/pro:date ?source_date .
+            FILTER (?source_date > "{{min_date | sparqlDate}}"^^xsd:dateTime)
+        {% endif %}
     }
-    """
-    resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": update_query})
-    resp.raise_for_status()
-    print "Finished in", datetime.datetime.now() - start
+    """).render(min_date=min_date)
+    resp = sparql_utils.update(query)
+    print("Finished in", datetime.datetime.now() - start)
     start = datetime.datetime.now()
-    print "Computing minimal containment relationships..."
+    print("Computing minimal containment relationships...")
     # I.e. the containing element contains no elements that contain object.
     update_query = prefixes+"""
     INSERT { ?p1 anno:min_contains ?target }
@@ -62,13 +74,12 @@ if __name__ == '__main__':
         }
     }
     """
-    resp = requests.post(config.SPARQLDB_URL + "/update", data={"update": update_query})
-    resp.raise_for_status()
-    print "Finished in", datetime.datetime.now() - start
+    resp = sparql_utils.update(query)
+    print("Finished in", datetime.datetime.now() - start)
     if args.debug:
         start = datetime.datetime.now()
-        print "Testing query speed without containment predicate..."
-        result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
+        print("Testing query speed without containment predicate...")
+        query = prefixes+"""
         SELECT ?p1 ?p2
         WHERE {
             ?p1 anno:start ?p1start
@@ -85,14 +96,16 @@ if __name__ == '__main__':
             FILTER ( ?p1start <= ?p2start && ?p1end >= ?p2end )
             FILTER (?p1 != ?p2)
         }
-        """}, headers={"Accept":"application/sparql-results+json" })
-        print "Finished in", datetime.datetime.now() - start
+        """
+        resp = sparql_utils.query(query)
+        print("Finished in", datetime.datetime.now() - start)
         start = datetime.datetime.now()
-        print "Testing query speed with containment predicate..."
-        result = requests.post(config.SPARQLDB_URL + "/query", data={"query":prefixes+"""
+        print("Testing query speed with containment predicate...")
+        query = prefixes+"""
         SELECT ?p1 ?p2
         WHERE {
             ?p1 anno:contains ?p2
         }
-        """}, headers={"Accept":"application/sparql-results+json" })
-        print "Finished in", datetime.datetime.now() - start
+        """
+        resp = sparql_utils.query(query)
+        print("Finished in", datetime.datetime.now() - start)

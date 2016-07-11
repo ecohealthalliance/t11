@@ -12,15 +12,15 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import argparse
 from spacy.en import English
 from templater import make_template
-import requests
+import sparql_utils
 import hashlib
-import config
+import more_itertools
 
 spacy_parser = English()
 print("Spacy Ready!")
 
 def create_annotations(article_uri, content):
-    tokens = spacy_parser(content)
+    doc = spacy_parser(content)
     token_to_range = {}
     def update_range(r1, r2):
         if r1 is None:
@@ -28,7 +28,7 @@ def create_annotations(article_uri, content):
         if r2 is None:
             return r1
         return [min(r1[0], r2[0]), max(r1[1], r2[1])]
-    for token in tokens:
+    for token in doc:
         child_token = token
         # import pdb; pdb.set_trace()
         while True:
@@ -56,7 +56,7 @@ def create_annotations(article_uri, content):
         h.update(str(start) + ':' + str(end))
         return "http://www.eha.io/types/annotation/spacy/phrase/" + str(h.hexdigest())
     token_inserts = []
-    for token in tokens:
+    for token in doc:
         token_inserts.append(make_template("""
         INSERT DATA {
             <{{pharse_ref}}> rdf:type eha:dependent_pharse
@@ -81,7 +81,7 @@ def create_annotations(article_uri, content):
             source_doc=article_uri,
             phrase_start=token_to_range[token][0],
             phrase_end=token_to_range[token][1],
-            phrase_text=tokens.text[slice(*token_to_range[token])],
+            phrase_text=doc.text[slice(*token_to_range[token])],
             root_word=token.text,
             pos=token.pos_,
             entity_type=token.ent_type_,
@@ -89,20 +89,20 @@ def create_annotations(article_uri, content):
             pharse_ref=get_pharse_uri(token),
             parent_phrase_ref=get_pharse_uri(token.head),
             dep=token.dep_))
-    token_inserts.append(make_template("""
-    INSERT DATA {
-        <{{source_doc}}> anno:annotated_by eha:spacy_0
-    }
-    """).render(source_doc=article_uri))
-    resp = requests.post(config.SPARQLDB_URL + "/update", data={
-        "timeout": 60,
-        "update": """
+    for chunk in more_itertools.chunked(token_inserts, 200):
+        sparql_utils.update("""
         prefix anno: <http://www.eha.io/types/annotation_prop/>
         prefix dep: <http://www.eha.io/types/annotation_prop/dep/>
         prefix eha: <http://www.eha.io/types/>
         prefix rdf: <http://www.w3.org/2000/01/rdf-schema#>
-        """ + "\n;\n".join(token_inserts)})
-    resp.raise_for_status()
+        """ + ";".join(chunk))
+    sparql_utils.update(make_template("""
+    prefix anno: <http://www.eha.io/types/annotation_prop/>
+    prefix eha: <http://www.eha.io/types/>
+    INSERT DATA {
+        <{{source_doc}}> anno:annotated_by eha:spacy_0
+    }
+    """).render(source_doc=article_uri))
 
 if __name__ == '__main__':
     import argparse
@@ -129,11 +129,7 @@ if __name__ == '__main__':
     items_processed = 0
     while max_items < 0 or items_processed < max_items:
         print("Items processed: ", str(items_processed))
-        result = requests.post(config.SPARQLDB_URL + "/query", data={
-            "query": article_query_template.render(),
-            "timeout": 60,
-        }, headers={"Accept":"application/sparql-results+json" })
-        result.raise_for_status()
+        result = sparql_utils.query(article_query_template.render())
         bindings = result.json()['results']['bindings']
         if len(bindings) == 0:
             print("No more results")

@@ -7,9 +7,8 @@ into a SPARQL DB.
 from __future__ import absolute_import, division, print_function, unicode_literals
 import argparse
 from templater import make_template
-import requests
+import sparql_utils
 import hashlib
-import config
 from annotator.annotator import AnnoDoc
 from annotator.keyword_annotator import KeywordAnnotator
 from annotator.geoname_annotator import GeonameAnnotator
@@ -38,11 +37,7 @@ def resolve_keyword(keyword):
     """).render(
         keyword=re.escape(keyword)
     )
-    resp = requests.post(config.SPARQLDB_URL + "/query", data={
-        "query": query,
-        "timeout": 60,
-    }, headers={"Accept":"application/sparql-results+json" })
-    resp.raise_for_status()
+    resp = sparql_utils.query(query)
     bindings = resp.json()['results']['bindings']
     if len(bindings) == 0:
         print("no match for", keyword.encode('ascii', 'xmlcharrefreplace'))
@@ -101,10 +96,7 @@ def create_annotations(article_uri, content):
             source_doc=article_uri,
             tier_name=tier_name,
             spans=tier.spans)
-        resp = requests.post(config.SPARQLDB_URL + "/update", data={
-            "update": update_query,
-            "timeout": 60,})
-        resp.raise_for_status()
+        return sparql_utils.update(update_query)
 
 if __name__ == '__main__':
     import argparse
@@ -132,11 +124,7 @@ if __name__ == '__main__':
     items_processed = 0
     while max_items < 0 or items_processed < max_items:
         print("Items processed: ", str(items_processed))
-        result = requests.post(config.SPARQLDB_URL + "/query", data={
-            "query": query_template.render(),
-            "timeout": 60,
-        }, headers={"Accept":"application/sparql-results+json" })
-        result.raise_for_status()
+        result = sparql_utils.query(query_template.render())
         bindings = result.json()['results']['bindings']
         if len(bindings) == 0:
             print("No more results")

@@ -7,3 +7,4 @@ dictdiffer
 pylint
 schema
 pylru
+more_itertools
