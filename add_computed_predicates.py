@@ -17,6 +17,32 @@ prefix pro: <http://www.eha.io/types/promed/>
 prefix xsd: <http://www.w3.org/2001/XMLSchema#>
 """
 
+containment_query_template = make_template(prefixes+"""
+INSERT { ?p1 anno:contains ?p2 }
+WHERE {
+    ?p1 anno:start ?p1start
+    ; anno:end ?p1end
+    ; anno:source_doc ?same_source
+    .
+    ?dep_rel rdf:type anno:dependency_relation .
+    ?parent ?dep_rel ?p1 .
+    ?p2 anno:start ?p2start
+    ; anno:end ?p2end
+    ; anno:source_doc ?same_source
+    ; anno:category "diseases"
+    .
+    ?same_source pro:post/pro:date ?source_date .
+    FILTER ( ?p1start <= ?p2start && ?p1end >= ?p2end )
+    FILTER (?p1 != ?p2)
+    {% if min_date %}
+        FILTER (?source_date >= "{{min_date | sparqlDate}}"^^xsd:dateTime)
+    {% endif %}
+    {% if max_date %}
+        FILTER (?source_date < "{{max_date | sparqlDate}}"^^xsd:dateTime)
+    {% endif %}
+}
+""")
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
@@ -28,36 +54,26 @@ if __name__ == '__main__':
     min_date = None
     if args.last_n_days:
         min_date = datetime.datetime.now() - datetime.timedelta(int(args.last_n_days))
-    start = datetime.datetime.now()
-    print("Computing containment relationships between keyword annotations and depency parse annotations...")
-    query = prefixes+make_template("""
-    INSERT { ?p1 anno:contains ?p2 }
-    WHERE {
-        ?p1 anno:start ?p1start
-            ; anno:end ?p1end
-            ; anno:source_doc ?same_source
-            .
-        ?dep_rel rdf:type anno:dependency_relation .
-        ?parent ?dep_rel ?p1 .
-        ?p2 anno:start ?p2start
-            ; anno:end ?p2end
-            ; anno:source_doc ?same_source
-            ; anno:category "diseases"
-            .
-        FILTER ( ?p1start <= ?p2start && ?p1end >= ?p2end )
-        FILTER (?p1 != ?p2)
-        {% if min_date %}
-            ?same_source pro:post/pro:date ?source_date .
-            FILTER (?source_date > "{{min_date | sparqlDate}}"^^xsd:dateTime)
-        {% endif %}
-    }
-    """).render(min_date=min_date)
-    resp = sparql_utils.update(query)
-    print("Finished in", datetime.datetime.now() - start)
+        start = datetime.datetime.now()
+        print("Computing containment relationships between keyword annotations and depency parse annotations...")
+        resp = sparql_utils.update(containment_query_template.render(min_date=min_date))
+        print("Finished in", datetime.datetime.now() - start)
+    else:
+        min_date = datetime.datetime(year=1994, month=1, day=1)
+        interval = datetime.timedelta(7)
+        start = datetime.datetime.now()
+        print("Computing containment relationships between keyword annotations and depency parse annotations...")
+        while min_date <= datetime.datetime.now():
+            print("Current date", min_date)
+            resp = sparql_utils.update(containment_query_template.render(
+                min_date=min_date,
+                max_date=min_date+interval))
+            min_date += interval
+        print("Finished in", datetime.datetime.now() - start)
     start = datetime.datetime.now()
     print("Computing minimal containment relationships...")
     # I.e. the containing element contains no elements that contain object.
-    update_query = prefixes+"""
+    query = prefixes+"""
     INSERT { ?p1 anno:min_contains ?target }
     WHERE {
         ?p1 anno:contains ?target
