@@ -20,6 +20,14 @@ annotators = [
     GeonameAnnotator(),
 ]
 
+# Test that the keyword annotator is set up correctly
+test_doc = AnnoDoc("ebola influenza glanders dermatitis")
+for annotator in annotators:
+    test_doc.add_tier(annotator)
+assert(
+    set(disease.label for disease in test_doc.tiers["diseases"].spans) -
+    set("ebola influenza glanders dermatitis".split(" ")) == set())
+
 @lrudecorator(500)
 def resolve_keyword(keyword):
     query = make_template("""
@@ -88,7 +96,7 @@ def create_annotations(article_uri, content):
         {% endif %}
         {% endfor %}
         INSERT DATA {
-            <{{source_doc}}> anno:annotated_by eha:annie_0
+            <{{source_doc}}> anno:annotated_by eha:annie_1
         }
         """).render(
             get_span_uri=get_span_uri,
@@ -96,7 +104,7 @@ def create_annotations(article_uri, content):
             source_doc=article_uri,
             tier_name=tier_name,
             spans=tier.spans)
-        return sparql_utils.update(update_query)
+        sparql_utils.update(update_query)
 
 if __name__ == '__main__':
     import argparse
@@ -115,7 +123,7 @@ if __name__ == '__main__':
         ?item_uri con:text ?content
         # FILTER(strstarts(str(?item_uri), "http://t11.tater.io/documents/"))
         FILTER NOT EXISTS {
-            ?item_uri anno:annotated_by eha:annie_0
+            ?item_uri anno:annotated_by eha:annie_1
         }
     }
     ORDER BY rand()
