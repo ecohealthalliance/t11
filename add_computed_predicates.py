@@ -51,25 +51,19 @@ if __name__ == '__main__':
         "--last_n_days", default=None
     )
     args = parser.parse_args()
-    min_date = None
+    min_date = datetime.datetime(year=1994, month=1, day=1)
     if args.last_n_days:
         min_date = datetime.datetime.now() - datetime.timedelta(int(args.last_n_days))
-        start = datetime.datetime.now()
-        print("Computing containment relationships between keyword annotations and depency parse annotations...")
-        resp = sparql_utils.update(containment_query_template.render(min_date=min_date))
-        print("Finished in", datetime.datetime.now() - start)
-    else:
-        min_date = datetime.datetime(year=1994, month=1, day=1)
-        interval = datetime.timedelta(7)
-        start = datetime.datetime.now()
-        print("Computing containment relationships between keyword annotations and depency parse annotations...")
-        while min_date <= datetime.datetime.now():
-            print("Current date", min_date)
-            resp = sparql_utils.update(containment_query_template.render(
-                min_date=min_date,
-                max_date=min_date+interval))
-            min_date += interval
-        print("Finished in", datetime.datetime.now() - start)
+    interval = datetime.timedelta(7)
+    start = datetime.datetime.now()
+    print("Computing containment relationships between keyword annotations and depency parse annotations...")
+    while min_date <= datetime.datetime.now():
+        print("Current date", min_date)
+        resp = sparql_utils.update(containment_query_template.render(
+            min_date=min_date,
+            max_date=min_date+interval))
+        min_date += interval
+    print("Finished in", datetime.datetime.now() - start)
     start = datetime.datetime.now()
     print("Computing minimal containment relationships...")
     # I.e. the containing element contains no elements that contain object.
