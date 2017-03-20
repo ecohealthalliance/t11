@@ -64,7 +64,7 @@ def create_annotations(article_uri, content):
         h.update(str(span.start) + ':' + str(span.end))
         return "http://www.eha.io/types/annotation/annie/span/" + str(h.hexdigest())
     for tier_name, tier in annotated_doc.tiers.items():
-        if tier_name.endswith("grams") or tier_name in ["tokens", "pos", "nes"]:
+        if tier_name.endswith("grams") or tier_name in ["tokens", "pos", "nes"] or token_name.startswith("stanford."):
             continue
         update_query = make_template("""
         prefix anno: <http://www.eha.io/types/annotation_prop/>
