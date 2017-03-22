@@ -75,7 +75,7 @@ def create_annotations(article_uri, content):
                 {% endif %}
         } ;
         INSERT DATA {
-            <{{parent_phrase_ref}}> dep:{{dep}} <{{pharse_ref}}>
+            <{{parent_phrase_ref}}> dep:{{dep | replace_invalid_uri_chars}} <{{pharse_ref}}>
         }
         """).render(
             source_doc=article_uri,
@@ -123,7 +123,7 @@ if __name__ == '__main__':
             ?item_uri anno:annotated_by eha:spacy_0
         }
     }
-    ORDER BY rand()
+    ORDER BY asc(?item_uri)
     LIMIT 100
     """)
     items_processed = 0

@@ -45,16 +45,22 @@ WHERE {
 
 if __name__ == '__main__':
     import argparse
+    import dateutil.parser
     parser = argparse.ArgumentParser()
     parser.add_argument('-debug', action='store_true')
     parser.add_argument(
         "--last_n_days", default=None
     )
+    parser.add_argument(
+        "--from_date", default=None
+    )
     args = parser.parse_args()
     min_date = datetime.datetime(year=1994, month=1, day=1)
     if args.last_n_days:
         min_date = datetime.datetime.now() - datetime.timedelta(int(args.last_n_days))
-    interval = datetime.timedelta(7)
+    elif args.from_date:
+        min_date = dateutil.parser.parse(args.from_date)
+    interval = datetime.timedelta(3)
     start = datetime.datetime.now()
     print("Computing containment relationships between keyword annotations and depency parse annotations...")
     while min_date <= datetime.datetime.now():
