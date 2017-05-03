@@ -63,9 +63,8 @@ def create_annotations(article_uri, content):
         h.update(article_uri)
         h.update(str(span.start) + ':' + str(span.end))
         return "http://www.eha.io/types/annotation/annie/span/" + str(h.hexdigest())
-    for tier_name, tier in annotated_doc.tiers.items():
-        if tier_name.endswith("grams") or tier_name in ["tokens", "pos", "nes"] or tier_name.startswith("stanford."):
-            continue
+    for tier_name in ['geonames', 'diseases', 'hosts', 'modes', 'pathogens', 'symptoms']:
+        tier = annotated_doc.tiers[tier_name]
         update_query = make_template("""
         prefix anno: <http://www.eha.io/types/annotation_prop/>
         prefix eha: <http://www.eha.io/types/>
