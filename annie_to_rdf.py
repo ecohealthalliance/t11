@@ -9,9 +9,9 @@ import argparse
 from templater import make_template
 import sparql_utils
 import hashlib
-from annotator.annotator import AnnoDoc
-from annotator.keyword_annotator import KeywordAnnotator
-from annotator.geoname_annotator import GeonameAnnotator
+from epitator.annotator import AnnoDoc
+from epitator.keyword_annotator import KeywordAnnotator
+from epitator.geoname_annotator import GeonameAnnotator
 import re
 from pylru import lrudecorator
 
